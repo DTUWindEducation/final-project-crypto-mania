@@ -12,6 +12,10 @@ DATA_DIR = Path(__file__).resolve().parent / 'inputs/IEA-15-240-RWT'
 turbine_data = DATA_DIR / 'IEA_15MW_RWT_Onshore.opt'
 V, phi, omega, P, T = src.load_resp(turbine_data)
 
+# Load blade data
+blade_data = DATA_DIR / 'IEA-15-240-RWT_AeroDyn15_blade.dat'
+BlSpn, BlCrvAC, BlSwpAC, BlCrvAng, BlTwist, BlChord, BlAFID, BlCb, BlCenBn, BlCenBt = src.load_blade_data(blade_data)
 
-# Plot V vs phi
+
+# Plot phi vs V
 src.plot_V_vs_phi(phi, V)
