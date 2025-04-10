@@ -26,3 +26,5 @@ coords = src.load_af_coords(airfoil_data_path)
 
 # Plot phi vs V
 src.plot_V_vs_phi(phi, V)
+
+src.plot_airfoils(coords)
