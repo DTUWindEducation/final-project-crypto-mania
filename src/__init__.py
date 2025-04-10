@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import scipy as sp
+from scipy import interpolate
 
 def load_resp(path_resp):
     """Loads response data from an .opt file and applies time filtering."""
@@ -95,6 +96,7 @@ def plot_V_vs_phi(V, phi):
     plt.legend()
     plt.show()
 
+
 def compute_cl_cd_vs_r_alpha(BlSpn, BlAFID, polar_data, alpha_range=np.linspace(-20, 20, 100)):
     r_values = BlSpn
     alpha_values = alpha_range
@@ -126,3 +128,19 @@ def compute_cl_cd_vs_r_alpha(BlSpn, BlAFID, polar_data, alpha_range=np.linspace(
         Cd_matrix[i, :] = Cd_interp(alpha_range)
     
     return r_values, alpha_values, Cl_matrix, Cd_matrix
+
+def plot_airfoils(coords_data):
+    """Plots the airfoil shapes in one figure."""
+    plt.figure(figsize=(8, 4))
+    
+    for i, df in enumerate(coords_data):
+        if df is not None:
+            plt.plot(df['x/c'], df['y/c'], label=f'Airfoil {i}')
+    
+    plt.xlabel('x/c')
+    plt.ylabel('y/c')
+    plt.title('Airfoil Shapes')
+    plt.grid(True)
+    plt.show()
+
+

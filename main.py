@@ -27,6 +27,7 @@ coords = src.load_af_coords(airfoil_data_path)
 # Plot phi vs V
 src.plot_V_vs_phi(phi, V)
 
+
 # Compute Cl and Cd vs r and α
 r_values, alpha_values, Cl_matrix, Cd_matrix = src.compute_cl_cd_vs_r_alpha(
     BlSpn, BlAFID, polar_data, alpha_range=np.linspace(-180, 180, 100)
@@ -48,3 +49,6 @@ plt.title("Lift (Cl) and Drag (Cd) Coefficients vs Angle of Attack at Selected S
 plt.grid(True)
 plt.legend()
 plt.show()
+
+src.plot_airfoils(coords)
+
