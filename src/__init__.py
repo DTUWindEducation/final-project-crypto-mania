@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def load_resp(path_resp):
     """Loads response data from an .opt file and applies time filtering."""
@@ -21,7 +22,7 @@ def load_resp(path_resp):
 
 def load_blade_data(file_path):
     # Read the file, skipping the first few lines if necessary, and use whitespace as separator
-    data = pd.read_csv(file_path, sep='\s+', header=None, skiprows=6)  # Skip the first row with non-relevant info
+    data = pd.read_csv(file_path, sep='\s+', header=None, skiprows=6)
 
     # Rename columns to a more convenient format
     data.columns = ['BlSpn', 'BlCrvAC', 'BlSwpAC', 'BlCrvAng', 'BlTwist', 'BlChord', 'BlAFID', 'BlCb', 'BlCenBn', 'BlCenBt']
@@ -40,6 +41,47 @@ def load_blade_data(file_path):
     
     return BlSpn, BlCrvAC, BlSwpAC, BlCrvAng, BlTwist, BlChord, BlAFID, BlCb, BlCenBn, BlCenBt
 
+def load_polar_data(directory, base_filename="IEA-15-240-RWT_AeroDyn15_Polar_", num_files=50):
+    polar_data = []
+    column_names = ['Alpha', 'Cl', 'Cd', 'Cm']
+
+    for i in range(num_files):
+        filename = f"{base_filename}{i:02d}.dat"
+        filepath = os.path.join(directory, filename)
+
+        try:
+            # Determine how many lines to skip (header row included in both cases)
+            skip = 20 if i < 5 else 54
+
+            # Read file without assuming any header row; manually assign names
+            df = pd.read_csv(filepath, sep='\s+', skiprows=skip, header=None, names=column_names, engine='python')
+            
+            # Append to list
+            polar_data.append(df)
+
+        except Exception as e:
+            print(f"Error reading file {filename}: {e}")
+            polar_data.append(None)
+
+    return polar_data
+
+def load_af_coords(directory, base_filename="IEA-15-240-RWT_AF", num_files=50):
+    coords_data = []
+
+    for i in range(num_files):
+        filename = f"{base_filename}{i:02d}_Coords.txt"
+        filepath = os.path.join(directory, filename)
+
+        try:
+            # Skip the first 9 lines (headers and comments)
+            df = pd.read_csv(filepath, sep='\s+', skiprows=8, header=None, names=["x/c", "y/c"], engine='python')
+            coords_data.append(df)
+
+        except Exception as e:
+            print(f"Error reading file {filename}: {e}")
+            coords_data.append(None)
+
+    return coords_data
 
 def plot_V_vs_phi(V, phi):
     """Plots wind speed (V) against pitch (phi)."""
