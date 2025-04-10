@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import scipy as sp
 from scipy import interpolate
 
 def load_resp(path_resp):
@@ -95,6 +96,39 @@ def plot_V_vs_phi(V, phi):
     plt.legend()
     plt.show()
 
+
+def compute_cl_cd_vs_r_alpha(BlSpn, BlAFID, polar_data, alpha_range=np.linspace(-20, 20, 100)):
+    r_values = BlSpn
+    alpha_values = alpha_range
+    Cl_matrix = np.zeros((len(r_values), len(alpha_values)))
+    Cd_matrix = np.zeros((len(r_values), len(alpha_values)))
+    
+    for i, (r, af_id) in enumerate(zip(r_values, BlAFID)):
+        af_id = int(af_id) - 1  # Convert to 0-based index
+        
+        # Skip invalid airfoil IDs or missing data
+        if af_id < 0 or af_id >= len(polar_data) or polar_data[af_id] is None:
+            Cl_matrix[i, :] = np.nan
+            Cd_matrix[i, :] = np.nan
+            continue
+        
+        polar_df = polar_data[af_id]
+        
+        # Interpolate Cl and Cd
+        Cl_interp = sp.interpolate.interp1d(
+            polar_df['Alpha'], polar_df['Cl'], 
+            kind='linear', fill_value="extrapolate"
+        )
+        Cd_interp = sp.interpolate.interp1d(
+            polar_df['Alpha'], polar_df['Cd'], 
+            kind='linear', fill_value="extrapolate"
+        )
+        
+        Cl_matrix[i, :] = Cl_interp(alpha_range)
+        Cd_matrix[i, :] = Cd_interp(alpha_range)
+    
+    return r_values, alpha_values, Cl_matrix, Cd_matrix
+
 def plot_airfoils(coords_data):
     """Plots the airfoil shapes in one figure."""
     plt.figure(figsize=(8, 4))
@@ -108,4 +142,5 @@ def plot_airfoils(coords_data):
     plt.title('Airfoil Shapes')
     plt.grid(True)
     plt.show()
+
 
