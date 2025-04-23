@@ -52,3 +52,57 @@ plt.show()
 
 src.plot_airfoils(coords)
 
+
+
+# Define a color palette (can add more colors if needed)
+colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
+
+# Prepare the plot
+plt.figure(figsize=(12, 6))
+
+# Test multiple operating conditions
+test_cases = [
+    {'V0': 6, 'theta_p': 0, 'omega': 5},      # Low wind speed
+    {'V0': 8, 'theta_p': 2, 'omega': 6},      # Design conditions
+    {'V0': 10, 'theta_p': 5, 'omega': 7.5},   # Rated power
+    {'V0': 12, 'theta_p': 10, 'omega': 9}     # High wind speed
+]
+
+for idx, case in enumerate(test_cases):
+    print(f"\nRunning case: V0={case['V0']}m/s, theta_p={case['theta_p']}°, omega={case['omega']}rad/s")
+
+    try:
+        a, a_prime = src.compute_induction_factors(
+            r=BlSpn,
+            V0=case['V0'],
+            theta_p=case['theta_p'],
+            omega=case['omega'],
+            BlSpn=BlSpn,
+            BlTwist=BlTwist,
+            BlChord=BlChord,
+            BlAFID=BlAFID,
+            polar_data=polar_data
+        )
+
+        valid = ~np.isnan(a) & ~np.isnan(a_prime)
+        print(f"Successfully computed {sum(valid)}/{len(BlSpn)} points")
+        print(f"a: min={np.nanmin(a):.3f}, max={np.nanmax(a):.3f}, mean={np.nanmean(a):.3f}")
+        print(f"a': min={np.nanmin(a_prime):.3f}, max={np.nanmax(a_prime):.3f}, mean={np.nanmean(a_prime):.3f}")
+
+        color = colors[idx % len(colors)]
+        label_base = f"V0={case['V0']} m/s, θ={case['theta_p']}°, ω={case['omega']} rad/s"
+        plt.plot(BlSpn[valid], a[valid], color=color, linestyle='-', label=f"a | {label_base}")
+        plt.plot(BlSpn[valid], a_prime[valid], color=color, linestyle='--', label=f"a' | {label_base}")
+
+    except Exception as e:
+        print(f"Failed to compute case: {str(e)}")
+
+# Finalize plot
+plt.xlabel('Span position [m]')
+plt.ylabel('Induction factor')
+plt.title("Axial (a) and Tangential (a′) Induction Factors Across Operating Conditions")
+plt.ylim(-0.2, 1.2)
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
