@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import pi
 import os
 import scipy as sp
 from scipy import interpolate
@@ -282,3 +283,13 @@ def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, Bl
             a_prime[i] = np.nan
     
     return a, a_prime
+
+
+def compute_dT(r, dr, rho, V_inflow, axial_factor):
+    return abs(4 * np.pi * r * rho * V_inflow**2 * axial_factor * (1 - axial_factor) * dr)
+
+def compute_dM(r, dr, rho, V_inflow, axial_factor, tangential_factor, omega):
+    return 4 * np.pi * r**3 * rho * V_inflow * omega * tangential_factor * (1 - axial_factor) * dr
+
+def compute_aerodynamic_power(torque, rotational_speed):
+    return torque * rotational_speed
