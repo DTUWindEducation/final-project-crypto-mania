@@ -5,6 +5,8 @@ from numpy import pi
 import os
 import scipy as sp
 from scipy import interpolate
+import scipy.interpolate as sp_interp
+from typing import Tuple, Dict, List
 
 def load_resp(path_resp):
     """Loads response data from an .opt file and applies time filtering."""
@@ -147,29 +149,7 @@ def plot_airfoils(coords_data):
 
 def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, BlAFID, polar_data,
                             B=3, rho=1.225, tol=1e-5, max_iter=200, relaxation=0.05):
-    """
-    Robust BEM solver for axial (a) and tangential (a') induction factors.
-    
-    Args:
-        r: Span positions [m]
-        V0: Wind speed [m/s]
-        theta_p: Pitch angle [deg]
-        omega: Rotational speed [rad/s]
-        BlSpn: Blade span coordinates [m]
-        BlTwist: Blade twist [deg]
-        BlChord: Blade chord [m]
-        BlAFID: Airfoil IDs
-        polar_data: Airfoil polar data
-        B: Number of blades (default 3)
-        rho: Air density (default 1.225)
-        tol: Convergence tolerance (default 1e-5)
-        max_iter: Max iterations (default 200)
-        relaxation: Relaxation factor (default 0.05)
-    
-    Returns:
-        a: Axial induction factors
-        a_prime: Tangential induction factors
-    """
+ 
     a = np.zeros_like(r)
     a_prime = np.zeros_like(r)
     
@@ -198,9 +178,9 @@ def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, Bl
                 
             sigma = (B * chord) / (2 * np.pi * ri)
             
-            # Initialize with better estimates
-            a_prev = 0.2
-            a_prime_prev = 0.01
+            # Initialize
+            a_prev = 0
+            a_prime_prev = 0
             
             for iter in range(max_iter):
                 # 1. Flow angle calculation
