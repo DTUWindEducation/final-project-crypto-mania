@@ -293,3 +293,56 @@ def compute_dM(r, dr, rho, V_inflow, axial_factor, tangential_factor, omega):
 
 def compute_aerodynamic_power(torque, rotational_speed):
     return torque * rotational_speed
+
+def compute_optimal_strategy(V, phi, omega, P, T):
+    """
+    Computes optimal operational strategy (pitch angle and rotational speed) as function of wind speed.
+    
+    Args:
+        V: Wind speed array [m/s]
+        phi: Pitch angle array [deg]
+        omega: Rotational speed array [rad/s]
+        P: Power array [W]
+        T: Thrust array [N]
+        
+    Returns:
+        Tuple of (V_unique, phi_optimal, omega_optimal, P_optimal, T_optimal) where:
+            V_unique: Unique wind speeds
+            phi_optimal: Optimal pitch angles for each wind speed
+            omega_optimal: Optimal rotational speeds for each wind speed
+            P_optimal: Resulting power for each wind speed
+            T_optimal: Resulting thrust for each wind speed
+    """
+    # Convert to numpy arrays if they're pandas Series
+    V = np.asarray(V)
+    phi = np.asarray(phi)
+    omega = np.asarray(omega)
+    P = np.asarray(P)
+    T = np.asarray(T)
+    
+    # Get unique wind speeds
+    V_unique = np.unique(V)
+    
+    # Initialize output arrays
+    phi_optimal = np.zeros_like(V_unique)
+    omega_optimal = np.zeros_like(V_unique)
+    P_optimal = np.zeros_like(V_unique)
+    T_optimal = np.zeros_like(V_unique)
+    
+    # For each unique wind speed, find the operational point with maximum power
+    for i, v in enumerate(V_unique):
+        mask = (V == v)
+        
+        if not np.any(mask):
+            continue
+            
+        # Find index of maximum power for this wind speed
+        max_power_idx = np.argmax(P[mask])
+        
+        # Store optimal values
+        phi_optimal[i] = phi[mask][max_power_idx]
+        omega_optimal[i] = omega[mask][max_power_idx]
+        P_optimal[i] = P[mask][max_power_idx]
+        T_optimal[i] = T[mask][max_power_idx]
+    
+    return V_unique, phi_optimal, omega_optimal, P_optimal, T_optimal
