@@ -3,6 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
+import pandas as pd
 import time
 
 # Define data directory
@@ -120,51 +121,77 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-        # Store values for plotting
-r_valid = BlSpn[valid]
-plt.figure(figsize=(15, 8))
 
+# Compute optimal strategy
+V_unique, phi_opt, omega_opt, P_opt, T_opt = src.compute_optimal_strategy(V, phi, omega, P, T)
 
-        # Plot differential Thrust
-plt.subplot(2, 2, 1)
-plt.plot(r_valid, dT, label=f"V0={case['V0']} m/s")
-plt.xlabel("Span position r [m]")
-plt.ylabel("dT [N/m]")
-plt.title("Differential Thrust along Blade Span")
+# Plot optimal pitch and rotational speed vs wind speed
+plt.figure(figsize=(12, 8))
+
+# Pitch angle plot
+plt.subplot(2, 1, 1)
+plt.plot(V_unique, phi_opt, 'b-', label='Optimal pitch angle')
+plt.xlabel('Wind speed [m/s]')
+plt.ylabel('Pitch angle [deg]')
+plt.title('Optimal Pitch Angle vs Wind Speed')
 plt.grid(True)
 plt.legend()
 
-        # Plot differential Torque
-plt.subplot(2, 2, 2)
-plt.plot(r_valid, dM, label=f"V0={case['V0']} m/s")
-plt.xlabel("Span position r [m]")
-plt.ylabel("dM [Nm/m]")
-plt.title("Differential Torque along Blade Span")
+# Rotational speed plot
+plt.subplot(2, 1, 2)
+plt.plot(V_unique, omega_opt, 'r-', label='Optimal rotational speed')
+plt.xlabel('Wind speed [m/s]')
+plt.ylabel('Rotational speed [rad/s]')
+plt.title('Optimal Rotational Speed vs Wind Speed')
 plt.grid(True)
 plt.legend()
 
-        # Plot cumulative Thrust
-plt.subplot(2, 2, 3)
-cumulative_Thrust = np.cumsum(dT) * 3  # Three blades
-plt.plot(r_valid, abs(cumulative_Thrust), label=f"V0={case['V0']} m/s")
-plt.xlabel("Span position r [m]")
-plt.ylabel("Cumulative Thrust [N]")
-plt.title("Cumulative Thrust along Blade Span")
+plt.tight_layout()
+plt.show()
+
+# Plot power and thrust curves
+plt.figure(figsize=(12, 8))
+
+# Power curve
+plt.subplot(2, 1, 1)
+plt.plot(V_unique, P_opt/1e3, 'g-', label='Optimal power')
+plt.xlabel('Wind speed [m/s]')
+plt.ylabel('Power [MW]')
+plt.title('Power Curve')
 plt.grid(True)
 plt.legend()
 
-        # Plot cumulative Torque
-plt.subplot(2, 2, 4)
-cumulative_Torque = np.cumsum(dM) * 3
-plt.plot(r_valid, abs(cumulative_Torque), label=f"V0={case['V0']} m/s")
-plt.xlabel("Span position r [m]")
-plt.ylabel("Cumulative Torque [Nm]")
-plt.title("Cumulative Torque along Blade Span")
+# Thrust curve
+plt.subplot(2, 1, 2)
+plt.plot(V_unique, T_opt/1e3, 'm-', label='Optimal thrust')
+plt.xlabel('Wind speed [m/s]')
+plt.ylabel('Thrust [kN]')
+plt.title('Thrust Curve')
 plt.grid(True)
 plt.legend()
 
-plt.suptitle(f"Load distributions for V0={case['V0']} m/s, θ={case['theta_p']}°, ω={case['omega']} rad/s", fontsize=16)
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.tight_layout()
 plt.show()
 
 
+# Compute optimal strategy
+V_unique, phi_opt, omega_opt, P_opt, T_opt = src.compute_optimal_strategy(V, phi, omega, P, T)
+
+# Filter for wind speeds between 1-25 m/s
+mask = (V_unique >= 1) & (V_unique <= 25)
+V_filtered = V_unique[mask]
+phi_filtered = phi_opt[mask]
+omega_filtered = omega_opt[mask]
+
+# Print header
+print("\nOptimal Operational Strategy")
+print("----------------------------")
+print(f"{'V0 [m/s]':<10}{'θp [deg]':<12}{'ω [rad/s]':<12}")
+print("-"*30)
+
+# Print values
+for v, p, w in zip(V_filtered, phi_filtered, omega_filtered):
+    print(f"{v:<10.1f}{p:<12.2f}{w:<12.2f}")
+
+# Print note about precision
+print("\nNote: Values are rounded to 2 decimal places for display")

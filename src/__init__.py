@@ -5,6 +5,8 @@ from numpy import pi
 import os
 import scipy as sp
 from scipy import interpolate
+import scipy.interpolate as sp_interp
+from typing import Tuple, Dict, List
 
 def load_resp(path_resp):
     """Loads response data from an .opt file and applies time filtering."""
@@ -147,29 +149,7 @@ def plot_airfoils(coords_data):
 
 def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, BlAFID, polar_data,
                             B=3, rho=1.225, tol=1e-5, max_iter=200, relaxation=0.05):
-    """
-    Robust BEM solver for axial (a) and tangential (a') induction factors.
-    
-    Args:
-        r: Span positions [m]
-        V0: Wind speed [m/s]
-        theta_p: Pitch angle [deg]
-        omega: Rotational speed [rad/s]
-        BlSpn: Blade span coordinates [m]
-        BlTwist: Blade twist [deg]
-        BlChord: Blade chord [m]
-        BlAFID: Airfoil IDs
-        polar_data: Airfoil polar data
-        B: Number of blades (default 3)
-        rho: Air density (default 1.225)
-        tol: Convergence tolerance (default 1e-5)
-        max_iter: Max iterations (default 200)
-        relaxation: Relaxation factor (default 0.05)
-    
-    Returns:
-        a: Axial induction factors
-        a_prime: Tangential induction factors
-    """
+ 
     a = np.zeros_like(r)
     a_prime = np.zeros_like(r)
     
@@ -198,9 +178,9 @@ def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, Bl
                 
             sigma = (B * chord) / (2 * np.pi * ri)
             
-            # Initialize with better estimates
-            a_prev = 0.2
-            a_prime_prev = 0.01
+            # Initialize
+            a_prev = 0
+            a_prime_prev = 0
             
             for iter in range(max_iter):
                 # 1. Flow angle calculation
@@ -293,3 +273,56 @@ def compute_dM(r, dr, rho, V_inflow, axial_factor, tangential_factor, omega):
 
 def compute_aerodynamic_power(torque, rotational_speed):
     return torque * rotational_speed
+
+def compute_optimal_strategy(V, phi, omega, P, T):
+    """
+    Computes optimal operational strategy (pitch angle and rotational speed) as function of wind speed.
+    
+    Args:
+        V: Wind speed array [m/s]
+        phi: Pitch angle array [deg]
+        omega: Rotational speed array [rad/s]
+        P: Power array [W]
+        T: Thrust array [N]
+        
+    Returns:
+        Tuple of (V_unique, phi_optimal, omega_optimal, P_optimal, T_optimal) where:
+            V_unique: Unique wind speeds
+            phi_optimal: Optimal pitch angles for each wind speed
+            omega_optimal: Optimal rotational speeds for each wind speed
+            P_optimal: Resulting power for each wind speed
+            T_optimal: Resulting thrust for each wind speed
+    """
+    # Convert to numpy arrays if they're pandas Series
+    V = np.asarray(V)
+    phi = np.asarray(phi)
+    omega = np.asarray(omega)
+    P = np.asarray(P)
+    T = np.asarray(T)
+    
+    # Get unique wind speeds
+    V_unique = np.unique(V)
+    
+    # Initialize output arrays
+    phi_optimal = np.zeros_like(V_unique)
+    omega_optimal = np.zeros_like(V_unique)
+    P_optimal = np.zeros_like(V_unique)
+    T_optimal = np.zeros_like(V_unique)
+    
+    # For each unique wind speed, find the operational point with maximum power
+    for i, v in enumerate(V_unique):
+        mask = (V == v)
+        
+        if not np.any(mask):
+            continue
+            
+        # Find index of maximum power for this wind speed
+        max_power_idx = np.argmax(P[mask])
+        
+        # Store optimal values
+        phi_optimal[i] = phi[mask][max_power_idx]
+        omega_optimal[i] = omega[mask][max_power_idx]
+        P_optimal[i] = P[mask][max_power_idx]
+        T_optimal[i] = T[mask][max_power_idx]
+    
+    return V_unique, phi_optimal, omega_optimal, P_optimal, T_optimal
