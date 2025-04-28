@@ -21,12 +21,10 @@ airfoil_data_path = DATA_DIR / 'Airfoils'
 polar_data = src.load_polar_data(airfoil_data_path)
 
 # Load coords data
-airfoil_data_path = DATA_DIR / 'Airfoils'
 coords = src.load_af_coords(airfoil_data_path)
 
 # Plot phi vs V
 src.plot_V_vs_phi(phi, V)
-
 
 # Compute Cl and Cd vs r and α
 r_values, alpha_values, Cl_matrix, Cd_matrix = src.compute_cl_cd_vs_r_alpha(
@@ -50,22 +48,21 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
+# Plot airfoil shapes
 src.plot_airfoils(coords)
 
-
-
-# Define a color palette (can add more colors if needed)
+# Define a color palette
 colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
 
-# Prepare the plot
+# Prepare the plot for induction factors
 plt.figure(figsize=(12, 6))
 
 # Test multiple operating conditions
 test_cases = [
-    {'V0': 6, 'theta_p': 0, 'omega': 5},      # Low wind speed
-    {'V0': 8, 'theta_p': 2, 'omega': 6},      # Design conditions
-    {'V0': 10, 'theta_p': 5, 'omega': 7.5},   # Rated power
-    {'V0': 12, 'theta_p': 10, 'omega': 9}     # High wind speed
+    {'V0': 6, 'theta_p': 0, 'omega': 5},
+    {'V0': 8, 'theta_p': 2, 'omega': 6},
+    {'V0': 10, 'theta_p': 5, 'omega': 7.5},
+    {'V0': 12, 'theta_p': 10, 'omega': 9}
 ]
 
 for idx, case in enumerate(test_cases):
@@ -94,6 +91,22 @@ for idx, case in enumerate(test_cases):
         plt.plot(BlSpn[valid], a[valid], color=color, linestyle='-', label=f"a | {label_base}")
         plt.plot(BlSpn[valid], a_prime[valid], color=color, linestyle='--', label=f"a' | {label_base}")
 
+        # ---- NEW: Calculate dT, dM, and aerodynamic power ----
+        rho = 1.225
+        dr = np.gradient(BlSpn)  # differential span element
+
+        dT = src.compute_dT(BlSpn[valid], dr[valid], rho, case['V0'] * (1 - a[valid]), a[valid])
+        dM = src.compute_dM(BlSpn[valid], dr[valid], rho, case['V0'] * (1 - a[valid]), a[valid], a_prime[valid], case['omega'])
+
+        Total_Thrust = np.nansum(dT) * 3   # Multiply by number of blades
+        Total_Torque = abs(np.nansum(dM) * 3)
+
+        P_aero = src.compute_aerodynamic_power(Total_Torque, case['omega'])
+
+        print(f"Total aerodynamic thrust: {Total_Thrust/1e3:.2f} kN")
+        print(f"Total aerodynamic torque: {Total_Torque/1e3:.2f} kNm")
+        print(f"Aerodynamic power: {P_aero/1e6:.2f} MW")
+
     except Exception as e:
         print(f"Failed to compute case: {str(e)}")
 
@@ -106,3 +119,52 @@ plt.grid(True)
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+        # Store values for plotting
+r_valid = BlSpn[valid]
+plt.figure(figsize=(15, 8))
+
+
+        # Plot differential Thrust
+plt.subplot(2, 2, 1)
+plt.plot(r_valid, dT, label=f"V0={case['V0']} m/s")
+plt.xlabel("Span position r [m]")
+plt.ylabel("dT [N/m]")
+plt.title("Differential Thrust along Blade Span")
+plt.grid(True)
+plt.legend()
+
+        # Plot differential Torque
+plt.subplot(2, 2, 2)
+plt.plot(r_valid, dM, label=f"V0={case['V0']} m/s")
+plt.xlabel("Span position r [m]")
+plt.ylabel("dM [Nm/m]")
+plt.title("Differential Torque along Blade Span")
+plt.grid(True)
+plt.legend()
+
+        # Plot cumulative Thrust
+plt.subplot(2, 2, 3)
+cumulative_Thrust = np.cumsum(dT) * 3  # Three blades
+plt.plot(r_valid, abs(cumulative_Thrust), label=f"V0={case['V0']} m/s")
+plt.xlabel("Span position r [m]")
+plt.ylabel("Cumulative Thrust [N]")
+plt.title("Cumulative Thrust along Blade Span")
+plt.grid(True)
+plt.legend()
+
+        # Plot cumulative Torque
+plt.subplot(2, 2, 4)
+cumulative_Torque = np.cumsum(dM) * 3
+plt.plot(r_valid, abs(cumulative_Torque), label=f"V0={case['V0']} m/s")
+plt.xlabel("Span position r [m]")
+plt.ylabel("Cumulative Torque [Nm]")
+plt.title("Cumulative Torque along Blade Span")
+plt.grid(True)
+plt.legend()
+
+plt.suptitle(f"Load distributions for V0={case['V0']} m/s, θ={case['theta_p']}°, ω={case['omega']} rad/s", fontsize=16)
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.show()
+
+
