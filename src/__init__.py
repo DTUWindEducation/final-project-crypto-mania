@@ -326,3 +326,184 @@ def compute_optimal_strategy(V, phi, omega, P, T):
         T_optimal[i] = T[mask][max_power_idx]
     
     return V_unique, phi_optimal, omega_optimal, P_optimal, T_optimal
+
+def get_airfoil_coefficients(alpha, r_position, BlSpn, BlAFID, polar_data):
+    """
+    Gets interpolated airfoil coefficients (Cl, Cd) at specific span position and angle of attack.
+    
+    Args:
+        alpha: Angle of attack [deg] (can be array)
+        r_position: Span position [m]
+        BlSpn: Blade span coordinates [m]
+        BlAFID: Airfoil IDs
+        polar_data: Airfoil polar data
+        
+    Returns:
+        Cl: Lift coefficient at given position and angle(s)
+        Cd: Drag coefficient at given position and angle(s)
+    """
+    # Find nearest span position
+    idx = np.argmin(np.abs(BlSpn - r_position))
+    af_id = int(BlAFID[idx]) - 1  # Convert to 0-based index
+    
+    if af_id < 0 or af_id >= len(polar_data) or polar_data[af_id] is None:
+        return np.nan, np.nan
+    
+    # Create interpolators
+    polar_df = polar_data[af_id]
+    Cl_interp = sp.interpolate.interp1d(
+        polar_df['Alpha'], polar_df['Cl'], 
+        kind='linear', bounds_error=False, fill_value=(polar_df['Cl'].iloc[0], polar_df['Cl'].iloc[-1])
+    )
+    Cd_interp = sp.interpolate.interp1d(
+        polar_df['Alpha'], polar_df['Cd'], 
+        kind='linear', bounds_error=False, fill_value=(polar_df['Cd'].iloc[0], polar_df['Cd'].iloc[-1])
+    )
+    
+    return Cl_interp(alpha), Cd_interp(alpha)
+
+
+
+def analyze_airfoil_performance(BlSpn, BlAFID, polar_data):
+    """Analyze airfoil performance at key blade sections"""
+    print("\n" + "="*80)
+    print("AIRFOIL PERFORMANCE ANALYSIS AT KEY BLADE SECTIONS")
+    print("="*80)
+    
+    # Select 3 representative positions (root, mid, tip)
+    positions = [
+        {"name": "Root", "r": BlSpn[10]},  # Skip first few root elements
+        {"name": "Mid-span", "r": BlSpn[len(BlSpn)//2]},
+        {"name": "Tip", "r": BlSpn[-5]}  # Skip very tip
+    ]
+    
+    # Create angle of attack range
+    alpha_test = np.linspace(-5, 15, 21)  # -5° to 15° in 1° steps
+    
+    # Create figure for plots
+    plt.figure(figsize=(15, 6))
+    
+    for i, pos in enumerate(positions):
+        # Get coefficients
+        Cl, Cd = get_airfoil_coefficients(alpha_test, pos["r"], BlSpn, BlAFID, polar_data)
+        
+        # Plot Cl and Cd
+        plt.subplot(1, 2, 1)
+        plt.plot(alpha_test, Cl, 'o-', label=f'{pos["name"]} (r={pos["r"]:.1f}m)')
+        
+        plt.subplot(1, 2, 2)
+        plt.plot(alpha_test, Cd, 'o-', label=f'{pos["name"]} (r={pos["r"]:.1f}m)')
+    
+    # Format Cl plot
+    plt.subplot(1, 2, 1)
+    plt.title('Lift Coefficient vs Angle of Attack')
+    plt.xlabel('Angle of Attack [deg]')
+    plt.ylabel('Lift Coefficient (Cl)')
+    plt.grid(True)
+    plt.legend()
+    
+    # Format Cd plot
+    plt.subplot(1, 2, 2)
+    plt.title('Drag Coefficient vs Angle of Attack')
+    plt.xlabel('Angle of Attack [deg]')
+    plt.ylabel('Drag Coefficient (Cd)')
+    plt.grid(True)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Print detailed table
+    print("\nDetailed Airfoil Coefficients:")
+    print("-"*85)
+    print(f"{'Position':<12}{'r [m]':<8}{'α [°]':<6}{'Cl':<8}{'Cd':<8}{'Cl/Cd':<10}")
+    print("-"*85)
+    
+    stall_threshold = 0.1  # Cd increase threshold for stall detection
+    for pos in positions:
+        alphas = [-5, 0, 5, 10, 15]  # Key angles to analyze
+        prev_cd = None
+        
+        for alpha in alphas:
+            Cl, Cd = get_airfoil_coefficients(alpha, pos["r"], BlSpn, BlAFID, polar_data)
+            cl_cd = Cl/Cd if Cd > 0 else float('inf')
+            
+            # Detect stall (sudden increase in Cd)
+            stall_status = ""
+            if prev_cd is not None and (Cd - prev_cd) > stall_threshold:
+                stall_status = "STALL"
+            prev_cd = Cd
+            
+            print(f"{pos['name']:<12}{pos['r']:<8.1f}{alpha:<6.1f}{Cl:<8.3f}{Cd:<8.4f}{cl_cd:<10.1f}{stall_status}")
+
+
+def identify_operational_mode(V0, phi_opt, omega_opt, omega_rated=None):
+    """
+    Identifies turbine operational mode based on wind speed and optimal parameters.
+    
+    Args:
+        V0: Wind speed [m/s] (can be single value or array)
+        phi_opt: Optimal pitch angle [deg] (same length as V0)
+        omega_opt: Optimal rotational speed [rad/s] (same length as V0)
+        omega_rated: Optional rated rotational speed
+        
+    Returns:
+        If single input: tuple of (mode_string, info_dict)
+        If array input: tuple of (mode_list, info_list)
+    """
+    # Convert inputs to numpy arrays
+    V0 = np.asarray(V0)
+    phi_opt = np.asarray(phi_opt)
+    omega_opt = np.asarray(omega_opt)
+    
+    # Determine rated speed
+    omega_max = np.max(omega_opt) if omega_rated is None else omega_rated
+    
+    # Initialize outputs
+    modes = []
+    infos = []
+    
+    for v, phi, omega in zip(V0, phi_opt, omega_opt):
+        if v < 4:
+            mode = "Start-up"
+            info = {
+                "description": "Below cut-in speed", 
+                "color": "red",
+                "pitch": phi,
+                "speed": omega
+            }
+        elif (phi < 1) and (omega < 0.9*omega_max):
+            mode = "Partial load"
+            info = {
+                "description": "Max power tracking",
+                "control": "Variable speed, fixed pitch",
+                "color": "green",
+                "pitch": phi,
+                "speed": omega
+            }
+        elif (phi < 5) and (omega >= 0.9*omega_max):
+            mode = "Transition"
+            info = {
+                "description": "Approaching rated power",
+                "control": "Pitch begins to vary",
+                "color": "orange",
+                "pitch": phi,
+                "speed": omega
+            }
+        else:
+            mode = "Full load"
+            info = {
+                "description": "Power regulation",
+                "control": "Fixed speed, variable pitch",
+                "color": "blue",
+                "pitch": phi,
+                "speed": omega
+            }
+        
+        modes.append(mode)
+        infos.append(info)
+    
+    # Return appropriate format based on input
+    if V0.ndim == 0:  # Single value input
+        return modes[0], infos[0]
+    return modes, infos

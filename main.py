@@ -195,3 +195,18 @@ for v, p, w in zip(V_filtered, phi_filtered, omega_filtered):
 
 # Print note about precision
 print("\nNote: Values are rounded to 2 decimal places for display")
+
+# After computing optimal strategy
+modes, infos = src.identify_operational_mode(V_unique, phi_opt, omega_opt)
+
+# Print results - now handles both single and multiple values correctly
+if isinstance(modes, list):
+    print("\nOperational Mode Analysis:")
+    print("-------------------------")
+    for v, mode, info in zip(V_unique, modes, infos):
+        print(f"At {v:.1f} m/s: {mode} - {info['description']} (Pitch: {info['pitch']:.2f}°, Speed: {info['speed']:.2f} rad/s)")
+else:
+    print(f"\nAt {V_unique:.1f} m/s: {modes} - {infos['description']}")
+
+src.analyze_airfoil_performance(BlSpn, BlAFID, polar_data)
+
