@@ -21,7 +21,7 @@ def test_identify_operational_mode():
     
     # Test array input
     modes, infos = identify_operational_mode(
-        V0=np.array([3.0, 5.0, 12.0]),
+        v0=np.array([3.0, 5.0, 12.0]),
         phi_opt=np.array([0.0, 0.5, 10.0]),
         omega_opt=np.array([1.0, 6.0, 9.0])
     )
