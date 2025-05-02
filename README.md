@@ -12,7 +12,7 @@ The objective of this package is to provide a comprehensive set of tools for ana
 
 ## Quick-start guide
 Make sure that you have pip installed all the packages before running the scripts.
-Then start by running the __init__.py
+Then start by running the src/__init__.py
 and after that run the main.py
 The output comes as plots and numbers in the terminal, they arren't saved but can be, if needed for further investergation
 
