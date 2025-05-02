@@ -11,9 +11,10 @@ Whether you’re working with operational data, optimizing power output, or anal
 The objective of this package is to provide a comprehensive set of tools for analyzing the performance of wind turbines. It allows users to load and process turbine operational data, analyze aerodynamic properties, optimize operational strategies, and simulate key performance indicators like power, thrust, and rotational speed. By integrating various aerodynamic models, airfoil data, and induction factors, this package aims to support both the design and operational optimization of wind turbine systems, enabling better decision-making for engineers and researchers in the renewable energy field.
 
 ## Quick-start guide
-Start by run the __init__.py
+Make sure that you have pip installed all the packages before running the scripts.
+Then start by running the __init__.py
 and after that run the main.py
-
+The output comes as plots and numbers in the terminal, they arren't saved but can be, if needed for further investergation
 
 ## Architecture
 The architecture of this package is designed to handle various data inputs, perform necessary calculations, and output relevant information to optimize wind turbine performance. It is modular, making it flexible and easy to extend with additional functionality as required. The package is divided into several key modules, each responsible for a specific aspect of the analysis.
