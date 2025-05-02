@@ -88,16 +88,36 @@ def load_af_coords(directory, base_filename="IEA-15-240-RWT_AF", num_files=50):
 
     return coords_data
 
-def plot_V_vs_phi(V, phi):
-    """Plots wind speed (V) against pitch (phi)."""
-    plt.figure(figsize=(10, 6))
-    plt.plot(phi, V, label="Wind Speed vs Pitch", color='b')
-    plt.xlabel("Pitch (phi) [deg]")
-    plt.ylabel("Wind Speed (V) [m/s]")
-    plt.title("Wind Speed vs Pitch")
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+def plot_V_vs_phi(V: np.ndarray, phi: np.ndarray, show: bool = True) -> plt.Figure:
+    """
+    Plots wind speed (V) against pitch angle (phi).
+    
+    Args:
+        V: Array of wind speeds [m/s]
+        phi: Array of pitch angles [deg]
+        show: Whether to display the plot (default True)
+        
+    Returns:
+        matplotlib.Figure: The created figure object
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plot the data
+    ax.plot(phi, V, label="Wind Speed vs Pitch", color='b')
+    
+    # Add labels and title
+    ax.set_xlabel("Pitch (phi) [deg]")
+    ax.set_ylabel("Wind Speed (V) [m/s]")
+    ax.set_title("Wind Speed vs Pitch")
+    
+    # Add grid and legend
+    ax.grid(True)
+    ax.legend()
+    
+    if show:
+        plt.show()
+    
+    return fig
 
 
 def compute_cl_cd_vs_r_alpha(BlSpn, BlAFID, polar_data, alpha_range=np.linspace(-20, 20, 100)):
@@ -132,9 +152,14 @@ def compute_cl_cd_vs_r_alpha(BlSpn, BlAFID, polar_data, alpha_range=np.linspace(
     
     return r_values, alpha_values, Cl_matrix, Cd_matrix
 
-def plot_airfoils(coords_data):
-    """Plots the airfoil shapes in one figure."""
-    plt.figure(figsize=(8, 4))
+def plot_airfoils(coords_data, show_plot=True):
+    """Plots the airfoil shapes in one figure.
+    
+    Args:
+        coords_data: List of DataFrames with airfoil coordinates
+        show_plot: If True, displays the plot (set to False for testing)
+    """
+    fig = plt.figure(figsize=(8, 4))
     
     for i, df in enumerate(coords_data):
         if df is not None:
@@ -144,7 +169,10 @@ def plot_airfoils(coords_data):
     plt.ylabel('y/c')
     plt.title('Airfoil Shapes')
     plt.grid(True)
-    plt.show()
+    
+    if show_plot:
+        plt.show()
+    return fig  # Always return the figure
 
 
 def compute_induction_factors(r, V0, theta_p, omega, BlSpn, BlTwist, BlChord, BlAFID, polar_data,
